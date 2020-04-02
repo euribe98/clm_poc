@@ -11,7 +11,7 @@ python -m spacy download en
 
 
 ## test the model
-import spacy
+import spacy<br>
 nlp = spacy.load("en_core_web_sm")
 
  
