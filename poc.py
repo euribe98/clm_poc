@@ -1,23 +1,17 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# ## dependencies
-# - pdfminer
-# - spacy
-# - usaddress  (https://github.com/datamade/usaddress/blob/master/docs/index.rst)
-# 
-# 
-# ### Download best-matching version of specific model for your spaCy installation
-# python -m spacy download en_core_web_sm
-# 
-# You can now load the model via spacy.load('en_core_web_sm
-# 
-# if that doesn't work try:
-# pip3 install https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-2.2.0/en_core_web_sm-2.2.0.tar.gz
-# 
-# ###  Out-of-the-box: download best-matching default model and create shortcut link
-# python -m spacy download en
-# 
+# References:
+# - https://www.programiz.com/python-programming/nested-dictionary
+# - https://www.geeksforgeeks.org/python-nested-dictionary/
+# - https://spacy.io/api
+# - https://spacy.io/usage/adding-languages
+# - https://spacy.io/usage/linguistic-features#tokenization
+# - https://spacy.io/usage/processing-pipelines
+# - https://spacy.io/usage/training
+# - https://spacy.io/usage/adding-languages
+# - https://spacy.io/usage/examples
+# - https://spacy.io/api/annotation#pos-tagging
 
 # In[852]:
 
@@ -45,18 +39,6 @@ $( document ).ready(code_toggle);
 
 
 
-
-# References:
-# - https://www.programiz.com/python-programming/nested-dictionary
-# - https://www.geeksforgeeks.org/python-nested-dictionary/
-# - https://spacy.io/api
-# - https://spacy.io/usage/adding-languages
-# - https://spacy.io/usage/linguistic-features#tokenization
-# - https://spacy.io/usage/processing-pipelines
-# - https://spacy.io/usage/training
-# - https://spacy.io/usage/adding-languages
-# - https://spacy.io/usage/examples
-# - https://spacy.io/api/annotation#pos-tagging
 
 # In[1]:
 
@@ -92,7 +74,7 @@ class Party():
 
 
 # contract class using spacy
-from __future__ import division
+
 
 import pandas as pd
 import io
