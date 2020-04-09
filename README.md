@@ -19,7 +19,7 @@ nlp = spacy.load("en_core_web_sm")
 
 ### test the code via flask web app
 <b>start the test web app:</b>  python server.py <br>
-<b>open this url in web browser </b> http://127.0.0.1:5000/ <br>
+<b>open this url in web browser:</b>  http://127.0.0.1:5000/ <br>
 
 
  
