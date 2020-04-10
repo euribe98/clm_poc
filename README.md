@@ -13,11 +13,11 @@ python -m spacy download en_core_web_sm
 python -m spacy download en
 
 
-###  model load
+###  Test model load
 import spacy<br>
 nlp = spacy.load("en_core_web_sm")
 
-### test the code via flask web app
+### Test the code via flask web app
 - navigate to the test folder <br>
 - Create a directory called data at the same level as the python notebook or script.<br>
 - Drop the contract files in data (note: currently only pdf is supported).
