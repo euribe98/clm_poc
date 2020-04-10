@@ -23,6 +23,9 @@ nlp = spacy.load("en_core_web_sm")
 - Drop the contract files in data (note: currently only pdf is supported).
 - <b>start the test web app:</b>  python server.py <br>
 - <b>open this url in web browser:</b>  http://127.0.0.1:5000/ <br>
+- To test word search, enter a dictionary of words to search. An example is captured in the text box.<br>
+Syntax: {'legal': 'anti-bribery', 'financial': 'escrow','financial': 'perpetual','SLA': 'breach','SLA': 'uptime'} <br>
+which is key/value pairs ?(eg: category, word to search)
 
 
  
