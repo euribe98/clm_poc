@@ -864,9 +864,9 @@ def doSearch(contracts, searchStr):
     data = createSearch(searchStr)
 
     # add dups
-    data.loc[3] = ['financial', 'escrow']
-    data.loc[4] = ['SLA', 'breach']
-    data
+    #data.loc[3] = ['financial', 'escrow']
+    #data.loc[4] = ['SLA', 'breach']
+    #data
     
     #add number of filtered synonyms
     df1 = get_synonyms(data, 'Keyword', 3)  # up to 3 syn
