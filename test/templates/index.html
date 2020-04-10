@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+   <head>
+        <title>Test</title> 
+        <meta charset=utf-8> 
+	<style>
+      	   .container {
+           max-width: 1000px;
+          }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+           <h1>POC Test</h1>
+              <form action="/test_contracts/">
+                  <input type="submit" value="Create Contract Objects" />
+              </form>
+
+              <form method="POST" action="/test_search/">
+                  <label for="search">Enter Search...</label>
+                  <input type="text" name="searchstr" id="search" size="100" placeholder="{'legal': 'anti-bribery', 'financial': 'escrow','financial': 'perpetual','SLA': 'breach','SLA': 'uptime'}" style="max-width:300px;" autofocus required>
+
+          
+                  <input type="submit" value="Search Contract Objects" />
+              </form>
+       
+              <!-- <button> <a href="/test-ir/">Test IR</a></button> -->
+         </div>
+
+    </body>
+</html>

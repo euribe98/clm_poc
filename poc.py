@@ -1,47 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# References:
-# - https://www.programiz.com/python-programming/nested-dictionary
-# - https://www.geeksforgeeks.org/python-nested-dictionary/
-# - https://spacy.io/api
-# - https://spacy.io/usage/adding-languages
-# - https://spacy.io/usage/linguistic-features#tokenization
-# - https://spacy.io/usage/processing-pipelines
-# - https://spacy.io/usage/training
-# - https://spacy.io/usage/adding-languages
-# - https://spacy.io/usage/examples
-# - https://spacy.io/api/annotation#pos-tagging
-
-# In[852]:
-
-
-# toggle code display
-from IPython.display import HTML
-
-HTML('''<script>
-code_show=true; 
-function code_toggle() {
- if (code_show){
- $('div.input').hide();
- } else {
- $('div.input').show();
- }
- code_show = !code_show
-} 
-$( document ).ready(code_toggle);
-</script>
-<form action="javascript:code_toggle()"><input type="submit" value="toggle code on/off the raw code."></form>''')
-
-
-# In[ ]:
-
-
-
-
-
-# In[1]:
-
 
 class Party():
     
@@ -102,6 +61,7 @@ from spacy.lang.en import English
 from spacy.pipeline import EntityRuler 
 
 import usaddress
+import nltk
 
 
 
@@ -121,6 +81,7 @@ class Contract():
     wordtokens = [] # tokenized words
     lines = []      # tokenized lines, \n delimited
     parties = []    # Party objects
+    sections = []   # sections
         
     ## data model, dictionary for json 
     contract = {} # root
@@ -178,6 +139,9 @@ class Contract():
         
         # set up parties
         self.parties = self.getParties (txt)
+        
+        # set up sections
+        self.sections = self.getSections(self.orgtext)
     
 
         
@@ -249,6 +213,42 @@ class Contract():
         return self.parties
 
 
+    # Tokenize a document into topical sections using the TextTiling algorithm. 
+    # This algorithm detects subtopic shifts based on the analysis of lexical co-occurrence patterns.
+    def getSections(self, text, writetofile=False):
+
+        def cleanNumbers(lines):
+            regx = 'Page\s+[0-9]+\s+of\s+[0-9]+'
+            new = ''
+            for s in lines:
+                s=s.strip()
+
+                if len(s)==0 or s.isnumeric() or re.match(regx, s):  
+                    continue
+
+                new+=s+'\n'
+            return new
+
+
+        tt = nltk.tokenize.TextTilingTokenizer()
+        sections = tt.tokenize(text)
+
+
+        para = []
+        for sec in sections:
+            newsec = self.clean_empty_lines(sec)
+            lines = newsec.split("\n")
+            newsec = cleanNumbers(lines)  # clean
+            para.append(newsec)
+
+        if writetofile:
+            with open('./sections.txt', 'w') as f3:
+              for s in para:
+                f3.write(s + '<EOL>\n\n')
+        return para
+
+
+    
     def addAddressEntity(self, text):
         addrlist = self.getAddressList(text)
 
@@ -383,6 +383,21 @@ class Contract():
         self.updateModelList('party', plist)
     
 
+    def addSections(self):
+        slist = []
+        
+        for sec in self.sections:
+            txt = sec.split('\n')
+            typ = txt[0]
+            text = '\n'.join(txt[1:])
+
+            s = self.add_entity(['type,'+ typ, 'text,'+text]) 
+            slist.append(s)
+            
+        self.updateModelList('section', slist)
+
+    
+
     
     def add_entity(self, keyvalues):
         return dict(item.split(",",1) for item in keyvalues)
@@ -429,17 +444,14 @@ class Contract():
         
         # add parties  
         self.updateModel('party', self.party)  
-        #self.addParties (self.nlp(c.sentences[0]))
         self.addParties()
+        
+        # add sections
+        self.updateModel('section', self.section) 
+        self.addSections()
       
-        self.updateModel('section', self.section)   
+        # service 
         self.updateModel('service', self.service)     
-        
-        
-        # preamble section
-        s1 = self.add_entity(['type,'+ self.sentences[0].split('\n', 1)[0], 
-                              'text,'+self.sentences[0]])       
-        self.updateModelList('section', [s1])
         
         self.updateModel('text', self.orgtext)
    
@@ -479,6 +491,7 @@ class Contract():
         Returns: text with cleaned abreviations
         
         """
+        # need toget rid of '.' since spacy treat that as sentence delimieter
         abbrevs={'U.S.A':'USA', 'INC.':'INC '}    # space is needed, for spacy named-entity
         for abbrev in abbrevs:
             #clean= txt.replace(abbrev, abbrevs[abbrev])
@@ -531,7 +544,6 @@ class Contract():
         rsrcmgr = PDFResourceManager()
         retstr = io.StringIO()
         
-        #codec = 'utf-8'
         laparams = LAParams()
         layout = LAParams(all_texts=True)
         device = TextConverter(rsrcmgr, retstr, laparams=layout)
@@ -603,8 +615,6 @@ class Contract():
         
         """
         
-        #if len(self.text) == 0:
-        #self.text = self.convert_pdf_to_txt(pdffile)
         txt = self.convert_pdf_to_txt(pdffile)
         self.save_to_file(txtfile, txt)
         
@@ -713,9 +723,7 @@ class Contract():
         Returns: None 
         
         """
-        #for token in doc: 
-        #   print(token, token.pos_) 
-
+        
         return [token.text for token in doc if token.pos_ == pos] 
        
         
@@ -749,24 +757,6 @@ class Contract():
             
         return sents_list 
     
-        ''' TODO:
-        # custom boundary detection
-        nlp=spacy.load('en_core_web_sm')
-        def set_custom_boundaries(doc):
-            for token in doc[:-1]:
-                if token.text == ".(" or token.text == ").":
-                    doc[token.i+1].is_sent_start = True
-                elif token.text == "Rs." or token.text == ")":
-                    doc[token.i+1].is_sent_start = False
-            return doc
-
-        nlp.add_pipe(set_custom_boundaries, before="parser")
-        doc = nlp(text)
-
-        for sent in doc.sents:
-             print(sent.text)
-        '''
-       
 
 
     # Visualizing the dependency parse
@@ -792,9 +782,6 @@ class Contract():
         
 
 
-# In[3]:
-
-
 from pathlib import Path
 
 def getTxtFileName(pdffile, ext):
@@ -803,9 +790,6 @@ def getTxtFileName(pdffile, ext):
 def getFilePath(file):
     path = Path(file).parent.absolute()
     return path
-
-
-# In[13]:
 
 
 
@@ -829,256 +813,136 @@ def test(pdf, savejson=False, savetxt=False):
     return con
 
 
+    # test
+    filenames  = []
+    parent_dir = os.getcwd()+'/data'
+    for pdf_file in glob.glob(os.path.join(parent_dir, '*.pdf')):
+        filenames.append(pdf_file)
 
+    contracts = []
+    for fn in filenames:
+        print(fn)
+        c=test(pdf=fn, savejson=True, savetxt=False)
+        contracts.append(c)
 
-filenames  = []
-parent_dir = os.getcwd()+'/data'
-for pdf_file in glob.glob(os.path.join(parent_dir, '*.pdf')):
-    filenames.append(pdf_file)
 
-contracts = []
-for fn in filenames:
-    print(fn)
-    c=test(pdf=fn, savejson=True, savetxt=False)
-    contracts.append(c)
 
 
-# In[ ]:
 
 
 
 
 
-# In[ ]:
+import pandas as pd
+from nltk.corpus import wordnet
+from itertools import chain
 
 
+def createSearch(search):
+    d = eval(search) 
+    data = pd.DataFrame(d.items(), columns=['Category', 'Keyword'])
+    return data
 
 
-
-# In[ ]:
-
-
-
-
-
-# ### contract processing
-
-# In[20]:
-
-
-# visualize relationships
-displayoptions = {"compact": True}
-
-# preamble 
-for c in contracts:
-    text = c.sentences[0]
-    print(text)
-    
-    # Named Entities
-    doc = c.get_doc(text)
-    edf = c.get_entities(doc)
-    
-    # Visualizing the entity recognizer
-    c.viz_ent(doc)
-    
-    # Part-of-speech tags and dependencies
-    df = c.get_tokens(doc)
-    df.head(20)
-    
-    # visualize deps
-    c.viz_deps(doc, dispoptions = displayoptions)
-    #c.viz_deps_long(doc, dispoptions = displayoptions)
-    
-
-
-# In[22]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# ## training example
-# 
-# https://spacy.io/usage/training
-
-# In[ ]:
-
-
-'''
-from spacy.util import minibatch, compounding
-import random
-import os
-
-def train_example(itr=100):
-    
-    LABEL = "ANIMAL"
-    TRAIN_DATA = [
-        (
-            "Horses are too tall and they pretend to care about your feelings", {"entities": [(0, 6, LABEL)]},
-        ),
-        ("Do they bite?", {"entities": []}),
-        (
-            "horses are too tall and they pretend to care about your feelings", {"entities": [(0, 6, LABEL)]},
-        ),
-        ("horses pretend to care about your feelings", {"entities": [(0, 6, LABEL)]}),
-        (
-            "they pretend to care about your feelings, those horses", {"entities": [(48, 54, LABEL)]},
-        ),
-        ("horses?", {"entities": [(0, 6, LABEL)]},
-        ),
-        ("horse", {"entities": [(0, 5, LABEL)]}
-        ),
-        ("this is a horse", {"entities": [(10, 15, LABEL)]}
-        ),
-    ]
-
-
-    nlp = spacy.blank("en")  # create blank Language class
-    ner = nlp.create_pipe("ner")
-    nlp.add_pipe(ner)
-
-    #ner.add_label(LABEL)  # add new entity label to entity recognizer
-    for _, annotations in TRAIN_DATA:
-        for ent in annotations.get('entities'):
-            ner.add_label(ent[2])
-
-
-    optimizer = nlp.begin_training()
-
-    #move_names = list(ner.move_names)
-
-    # get names of other pipes to disable them during training
-    other_pipes = [pipe for pipe in nlp.pipe_names if pipe != "ner"]
-
-    with nlp.disable_pipes(*other_pipes):  # only train NER
-        sizes = compounding(1.0, 4.0, 1.001)
-
-        # batch up the examples using spaCy's minibatch
-        for itn in range(itr):
-            random.shuffle(TRAIN_DATA)
-            batches = minibatch(TRAIN_DATA, size=sizes)
-            losses = {}
-            for batch in batches:
-                texts, annotations = zip(*batch)
-                nlp.update(texts, annotations, sgd=optimizer, drop=0.35, losses=losses)
-            #print("Losses", losses)
-
-    # test the trained model
-    for text, _ in TRAIN_DATA:
-        doc = nlp(text)
-        print(doc)
-        print("Entities", [(ent.text, ent.label_) for ent in doc.ents])
-        #print("Tokens", [(t.text, t.ent_type_, t.ent_iob) for t in doc])
-
-
-    ## predict with new sentence
-    print('\npredict a new sentence')
-    sent = ["Do you like horses?", "My pig, horse, and horses went to sleep"]
-    for s in sent:
-        doc = nlp(s)
-        print(doc)
-        print("Entities", [(ent.text, ent.label_) for ent in doc.ents])
-        
-    return nlp
-
-    
- # save model to output directory
-def saveMode(nlp, new_model_name='testmodel',  output_dir = os.getcwd()): 
-   
-    #ner = nlp.get_pipe("ner")
-    #move_names = list(ner.move_names)
-
-    if output_dir is not None:
-        output_dir = Path(output_dir)
-        if not output_dir.exists():
-            output_dir.mkdir()
-        
-        nlp.meta["name"] = new_model_name  # rename model
-        nlp.to_disk(output_dir)
-        print("\nSaved model to", output_dir)
-        return nlp
-
-        
-def loadModel(move_names='', output_dir = os.getcwd()): 
+#find synonyms based on the keyword and build into a dataframe
+def get_synonyms(df, col, num):
+    L = []
+    for key in df[col]:
+        syn = wordnet.synsets(key)
        
-    print("\nLoading from", output_dir)
-    nlp2 = spacy.load(output_dir)
+        #flatten all lists by chain, remove duplicates by set
+        lemmas = list(set(chain.from_iterable([w.lemma_names() for w in syn])))
         
-    # Check the classes have loaded back consistently
-    if len(move_names) > 0:
-        assert nlp2.get_pipe("ner").move_names == move_names
-    return nlp2
-           
-
-#modelA = train_example(200) # train an named-entity
-
-#modelB = saveMode(modelA) # save the trained model
-
-#ner = modelB.get_pipe("ner")
-#move_names = list(ner.move_names)
-#print (move_names)
-modelC = loadModel() # load the trained model
-
-print('\nTesting loaded model')
-sent = ["Do you like horses?", "My pig, horse, and horses went to sleep"]
-for s in sent:
-    doc2 = modelC(s)
-    print(doc2)
-    print("Entities", [(ent.text, ent.label_) for ent in doc2.ents])
+        for syn in lemmas[:num]:
+            L.append([key, syn])
     
-'''
+    return (pd.DataFrame(L, columns=['Keyword','Syn']))    
 
 
-# In[ ]:
+def doSearch(contracts, searchStr):
+    
+    data = createSearch(searchStr)
+
+    # add dups
+    data.loc[3] = ['financial', 'escrow']
+    data.loc[4] = ['SLA', 'breach']
+    data
+    
+    #add number of filtered synonyms
+    df1 = get_synonyms(data, 'Keyword', 3)  # up to 3 syn
+    #print(df1)
+
+    synonyms = list(df1['Syn'])
+    #print(synonyms)
+
+    #merge Category, Keyword and Synonyms 
+    df2= pd.merge(data, df1)
+    #print(df2)
+
+    # merge keywords and syn
+    category=list(data['Category'])
+    keyword=list(data['Keyword'])
+
+    new_input_data= keyword + synonyms
+    new_input_data = list(set(new_input_data))
+    #print(new_input_data)
+
+    #clean Synonyms without any duplication
+    resultwords = [word for word in new_input_data if word not in keyword]
+    #print(resultwords)
+    
+    
+    ##### do the search
+    colnames = ('filename', 'section', 'category', 'keyword_synonym', 'original_keyword', 'context')
+    foundDf = pd.DataFrame(columns=colnames)
+
+    # search in each contract file
+    for con in contracts:
+        
+        for sec in con.sections:
+            
+            seclist = sec.split('\n')
+            secType = seclist[0]
+            stext =''.join(seclist)
+            
+            reccnt=0
+            
+            for word in new_input_data:
+                if word in keyword:
+                    match= data.loc[data['Keyword'] == word, 'Category'].iloc[0] 
+                else: 
+                    match= df2.loc[df2['Syn'] == word, 'Category'].iloc[0]           
+                if word in resultwords:
+                    match2 = df2.loc[df2['Syn'] == word, 'Keyword'].iloc[0]
+                else: 
+                    match2=""
+
+                sub = '(?:\S+\s+){10}%s.*(?:\S+\s+){10}' % word
+                surrounding_text = re.findall(sub, stext.lower()) 
+
+                if surrounding_text != [] :
+                    
+                    for found_text in surrounding_text:
+                        found_text = found_text.replace('\n','').replace(',',' ')
+                        
+                        #print(secType, match, word, match2, cnt)
+                            
+                        foundDf.loc[reccnt] = [con.pdffile, secType, # filename', 'section_num
+                                            match, word,             # 'category', 'Keyword_Synonym'
+                                            match2, found_text]      # Original_Keyword', 'Context
+                       
+                
+                reccnt = reccnt+1
+                
 
 
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
+    # save results to csv
+    if len(foundDf) > 0:
+        path= os.getcwd()+'/data/foundList.xlsx'
+        print(path)
+        foundDf.to_excel(path, index = False)
+        print('Check foundList.xlsx')
+        
+    return foundDf
+        
+        
